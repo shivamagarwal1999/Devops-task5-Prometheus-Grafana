@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+spec:
+  selector:
+    app: grafana
+    dc: IN
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30002
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-host2
+  labels:
+    app: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path:"/usr/share/grafana"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+  labels:
+    app: grafana
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graf1
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: grafana
+      dc: IN
+  template:
+    metadata:
+      name: myweb2
+      labels:
+        app: grafana
+        dc: IN
+    spec:
+      containers:
+      - name: mygraf
+        image: shivam3120/grafana:v1
+        volumeMounts:
+        - name: grafana-vol
+          mountPath: /usr/share/grafana/data
+      volumes:
+        - name: grafana-vol
+          persistentVolumeClaim:
+            claimName: grafana-pvc
